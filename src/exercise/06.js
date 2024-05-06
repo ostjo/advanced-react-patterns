@@ -3,6 +3,7 @@
 
 import * as React from 'react'
 import {Switch} from '../switch'
+import warning from 'warning'
 
 const callAll =
   (...fns) =>
@@ -33,6 +34,7 @@ function useToggle({
   reducer = toggleReducer,
   onChange,
   on: controlledOn,
+  readOnly = false,
 } = {}) {
   const {current: initialState} = React.useRef({on: initialOn})
   const [state, dispatch] = React.useReducer(reducer, initialState)
@@ -76,6 +78,15 @@ function useToggle({
       ...props,
     }
   }
+
+  const hasOnChange = Boolean(onChange)
+  React.useEffect(() => {
+    const isReadOnly = !hasOnChange && onIsControlled && !readOnly
+    warning(
+      !isReadOnly,
+      'Warning: Failed prop type: You provided an `on` prop to a toggle without an `onChange` handler. This will render a read-only field. If the field should be mutable use `defaultValue`. Otherwise, set either `onChange` or `readOnly`.',
+    )
+  }, [hasOnChange, onIsControlled, readOnly])
 
   return {
     on,
