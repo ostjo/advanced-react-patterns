@@ -88,6 +88,22 @@ function useToggle({
     )
   }, [hasOnChange, onIsControlled, readOnly])
 
+  const onIsControlledRef = React.useRef(onIsControlled)
+  React.useEffect(() => {
+    const uncontrolledToControlled =
+      onIsControlledRef.current && onIsControlled == null
+    const controlledToUncontrolled =
+      onIsControlledRef.current == null && onIsControlled
+    warning(
+      !uncontrolledToControlled,
+      'Warning: A component is changing from uncontrolled to controlled. Components should not switch from uncontrolled to controlled (or vice versa).',
+    )
+    warning(
+      !controlledToUncontrolled,
+      'Warning: A component is changing from controlled to uncontrolled. Components should not switch from uncontrolled to controlled (or vice versa).',
+    )
+  }, [onIsControlled, onIsControlledRef])
+
   return {
     on,
     reset,
