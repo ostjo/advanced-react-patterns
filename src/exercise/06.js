@@ -2,14 +2,17 @@
 // http://localhost:3000/isolated/exercise/06.js
 
 import * as React from 'react'
-import {Switch} from '../switch'
 import warning from 'warning'
+import {Switch} from '../switch'
 
 const useControlledSwitchWarning = controlPropValue => {
+  const isProduction = process.env.NODE_ENV === 'production'
   const isControlled = controlPropValue != null
   const isControlledRef = React.useRef(isControlled)
 
   React.useEffect(() => {
+    if (isProduction) return
+
     const uncontrolledToControlled = !isControlledRef.current && isControlled
     const controlledToUncontrolled = isControlledRef.current && !isControlled
     warning(
@@ -20,7 +23,7 @@ const useControlledSwitchWarning = controlPropValue => {
       !controlledToUncontrolled,
       'Warning: A component is changing from controlled to uncontrolled. Components should not switch from uncontrolled to controlled (or vice versa).',
     )
-  }, [isControlled, isControlledRef])
+  }, [isProduction, isControlled, isControlledRef])
 }
 
 const useOnChangeReadOnlyWarning = ({
@@ -28,16 +31,19 @@ const useOnChangeReadOnlyWarning = ({
   controlPropValue,
   readOnly,
 }) => {
+  const isProduction = process.env.NODE_ENV === 'production'
   const hasOnChange = Boolean(onChangePropValue)
   const isControlled = controlPropValue != null
 
   React.useEffect(() => {
+    if (isProduction) return
+
     const isReadOnly = !hasOnChange && isControlled && !readOnly
     warning(
       !isReadOnly,
       'Warning: Failed prop type: You provided an `on` prop to a toggle without an `onChange` handler. This will render a read-only field. If the field should be mutable use `defaultValue`. Otherwise, set either `onChange` or `readOnly`.',
     )
-  }, [hasOnChange, isControlled, readOnly])
+  }, [isProduction, hasOnChange, isControlled, readOnly])
 }
 
 const callAll =
