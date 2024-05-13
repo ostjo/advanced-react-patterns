@@ -5,6 +5,41 @@ import * as React from 'react'
 import {Switch} from '../switch'
 import warning from 'warning'
 
+const useControlledSwitchWarning = controlPropValue => {
+  const isControlled = controlPropValue != null
+  const isControlledRef = React.useRef(isControlled)
+
+  React.useEffect(() => {
+    const uncontrolledToControlled = !isControlledRef.current && isControlled
+    const controlledToUncontrolled = isControlledRef.current && !isControlled
+    warning(
+      !uncontrolledToControlled,
+      'Warning: A component is changing from uncontrolled to controlled. Components should not switch from uncontrolled to controlled (or vice versa).',
+    )
+    warning(
+      !controlledToUncontrolled,
+      'Warning: A component is changing from controlled to uncontrolled. Components should not switch from uncontrolled to controlled (or vice versa).',
+    )
+  }, [isControlled, isControlledRef])
+}
+
+const useOnChangeReadOnlyWarning = ({
+  onChangePropValue,
+  controlPropValue,
+  readOnly,
+}) => {
+  const hasOnChange = Boolean(onChangePropValue)
+  const isControlled = controlPropValue != null
+
+  React.useEffect(() => {
+    const isReadOnly = !hasOnChange && isControlled && !readOnly
+    warning(
+      !isReadOnly,
+      'Warning: Failed prop type: You provided an `on` prop to a toggle without an `onChange` handler. This will render a read-only field. If the field should be mutable use `defaultValue`. Otherwise, set either `onChange` or `readOnly`.',
+    )
+  }, [hasOnChange, isControlled, readOnly])
+}
+
 const callAll =
   (...fns) =>
   (...args) =>
@@ -41,6 +76,13 @@ function useToggle({
   // 🐨 determine whether on is controlled
   const onIsControlled = controlledOn != null
   const on = onIsControlled ? controlledOn : state.on
+
+  useControlledSwitchWarning(controlledOn)
+  useOnChangeReadOnlyWarning({
+    onChangePropValue: onChange,
+    controlPropValue: controlledOn,
+    readOnly,
+  })
 
   // 1. accept an action
   // 2. if onIsControlled is false, call dispatch with that action
@@ -79,31 +121,6 @@ function useToggle({
     }
   }
 
-  const hasOnChange = Boolean(onChange)
-  React.useEffect(() => {
-    const isReadOnly = !hasOnChange && onIsControlled && !readOnly
-    warning(
-      !isReadOnly,
-      'Warning: Failed prop type: You provided an `on` prop to a toggle without an `onChange` handler. This will render a read-only field. If the field should be mutable use `defaultValue`. Otherwise, set either `onChange` or `readOnly`.',
-    )
-  }, [hasOnChange, onIsControlled, readOnly])
-
-  const onIsControlledRef = React.useRef(onIsControlled)
-  React.useEffect(() => {
-    const uncontrolledToControlled =
-      onIsControlledRef.current && onIsControlled == null
-    const controlledToUncontrolled =
-      onIsControlledRef.current == null && onIsControlled
-    warning(
-      !uncontrolledToControlled,
-      'Warning: A component is changing from uncontrolled to controlled. Components should not switch from uncontrolled to controlled (or vice versa).',
-    )
-    warning(
-      !controlledToUncontrolled,
-      'Warning: A component is changing from controlled to uncontrolled. Components should not switch from uncontrolled to controlled (or vice versa).',
-    )
-  }, [onIsControlled, onIsControlledRef])
-
   return {
     on,
     reset,
@@ -125,7 +142,7 @@ function Toggle({on: controlledOn, onChange, initialOn, reducer}) {
 }
 
 function App() {
-  const [bothOn, setBothOn] = React.useState(false)
+  const [bothOn, setBothOn] = React.useState()
   const [timesClicked, setTimesClicked] = React.useState(0)
 
   function handleToggleChange(state, action) {
