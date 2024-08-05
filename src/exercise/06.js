@@ -6,13 +6,10 @@ import warning from 'warning'
 import {Switch} from '../switch'
 
 const useControlledSwitchWarning = controlPropValue => {
-  const isProduction = process.env.NODE_ENV === 'production'
   const isControlled = controlPropValue != null
   const isControlledRef = React.useRef(isControlled)
 
   React.useEffect(() => {
-    if (isProduction) return
-
     const uncontrolledToControlled = !isControlledRef.current && isControlled
     const controlledToUncontrolled = isControlledRef.current && !isControlled
     warning(
@@ -23,7 +20,7 @@ const useControlledSwitchWarning = controlPropValue => {
       !controlledToUncontrolled,
       'Warning: A component is changing from controlled to uncontrolled. Components should not switch from uncontrolled to controlled (or vice versa).',
     )
-  }, [isProduction, isControlled, isControlledRef])
+  }, [isControlled, isControlledRef])
 }
 
 const useOnChangeReadOnlyWarning = ({
@@ -31,19 +28,16 @@ const useOnChangeReadOnlyWarning = ({
   controlPropValue,
   readOnly,
 }) => {
-  const isProduction = process.env.NODE_ENV === 'production'
   const hasOnChange = Boolean(onChangePropValue)
   const isControlled = controlPropValue != null
 
   React.useEffect(() => {
-    if (isProduction) return
-
     const isReadOnly = !hasOnChange && isControlled && !readOnly
     warning(
       !isReadOnly,
       'Warning: Failed prop type: You provided an `on` prop to a toggle without an `onChange` handler. This will render a read-only field. If the field should be mutable use `defaultValue`. Otherwise, set either `onChange` or `readOnly`.',
     )
-  }, [isProduction, hasOnChange, isControlled, readOnly])
+  }, [hasOnChange, isControlled, readOnly])
 }
 
 const callAll =
@@ -83,12 +77,21 @@ function useToggle({
   const onIsControlled = controlledOn != null
   const on = onIsControlled ? controlledOn : state.on
 
-  useControlledSwitchWarning(controlledOn)
-  useOnChangeReadOnlyWarning({
-    onChangePropValue: onChange,
-    controlPropValue: controlledOn,
-    readOnly,
-  })
+  // this is pretty much the only case where it's legitimate to
+  // conditionally call a hook.
+  // the NODE_ENV will never change for the entire lifetime of the application.
+  // also, due to dead code elimination both functions will be excluded from
+  // production build.
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useControlledSwitchWarning(controlledOn)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useOnChangeReadOnlyWarning({
+      onChangePropValue: onChange,
+      controlPropValue: controlledOn,
+      readOnly,
+    })
+  }
 
   // 1. accept an action
   // 2. if onIsControlled is false, call dispatch with that action
